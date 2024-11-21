@@ -91,8 +91,7 @@ def find_all_top_heldout_feats(df_valid: pd.DataFrame, df_test: pd.DataFrame, to
         on=["feature", "concept"]
     )
 
-    matched_pairs = matched_pairs[matched_pairs["f1_per_domain"]
-                                  > top_threshold]
+    matched_pairs = matched_pairs[matched_pairs["f1_per_domain"] > top_threshold]
     matched_pairs = matched_pairs.sort_values(["f1_per_domain", "f1"], ascending=False).drop_duplicates(
         subset=["feature", "concept"], keep="first")
     return matched_pairs
@@ -121,12 +120,9 @@ def report_metrics(valid_path: Path, test_path: Path, top_threshold: float = 0.5
         df_valid, df_test, top_threshold)
     all_top_feats.to_csv(all_top_feats_path, index=False, header=True)
 
-    print(f"Compared {df_valid['feature'].nunique():,} features to {
-          len(top_feat_per_concept):,} concepts")
-    print(f"Saved best pairings per concept to {
-          top_feat_per_concept_path} and all top pairings to {all_top_feats_path}")
-    print(f"Average best F1 per concept in test set: {
-          top_feat_per_concept.mean():.3f}")
+    print(f"Compared {df_valid['feature'].nunique():,} features to {len(top_feat_per_concept):,} concepts")
+    print(f"Saved best pairings per concept to {top_feat_per_concept_path} and all top pairings to {all_top_feats_path}")
+    print(f"Average best F1 per concept in test set: {top_feat_per_concept.mean():.3f}")
     print(f"Number of top pairings in test set: {len(all_top_feats)}")
 
 

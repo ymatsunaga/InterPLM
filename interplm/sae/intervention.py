@@ -16,8 +16,7 @@ def get_esm_submodule_and_access_method(nnsight_model: NNsight, hidden_layer_idx
 
     # Confirm the hidden layer index is within bounds
     if hidden_layer_idx > n_layers:
-        raise ValueError(f"Hidden layer index {
-                         hidden_layer_idx} is out of bounds")
+        raise ValueError(f"Hidden layer index {hidden_layer_idx} is out of bounds")
 
     # The last hidden layer has an additional normalization step so we can access the output of that
     elif hidden_layer_idx == n_layers:

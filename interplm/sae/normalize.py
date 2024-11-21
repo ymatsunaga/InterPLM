@@ -134,8 +134,6 @@ def normalize_sae_features(
     # Save statistics
     np.save(feat_stat_cache / "max.npy", max_per_feat.cpu().numpy())
 
-    # Create and save normalized model if it doesn't exist
-    # if not norm_sae_path.exists():
     print("Creating normalized SAE model...")
     sae_normalized = create_normalized_model(sae, max_per_feat)
     torch.save(sae_normalized.state_dict(), norm_sae_path)

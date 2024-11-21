@@ -11,10 +11,13 @@ from interplm.sae.inference import get_sae_feats_in_batches
 from interplm.utils import get_device
 
 
-def get_random_sample_of_sae_feats(sae, esm_embds_dir: Path, n_to_sample: int = 50_000, n_shards: int = 5):
+def get_random_sample_of_sae_feats(sae: AutoEncoder, esm_embds_dir: Path, n_shards: int = 5):
+    """
+    Get a random sample of up to 1000 nonzero activations for each feature by scanning
+    across n_shards shards of ESM embeddings.
+    """
     device = get_device()
 
-    # select 50k out of len(esm_Acts) random indices
     nonzero_acts_per_feat = defaultdict(list)
     for shard in range(n_shards):
         esm_acts = torch.load(

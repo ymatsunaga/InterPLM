@@ -41,7 +41,7 @@ source ~/.zshrc
 
 ```bash
 # Download sequences
-wget -x -P $INTERPLM_DATA/uniprot/ https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.fasta.gz
+wget -P $INTERPLM_DATA/uniprot/ https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.fasta.gz
 
 # Select random subset and filter to proteins with length < 1022 for ESM-2 compatibility
 # Adjust num_proteins to increase the number of proteins kept
@@ -79,14 +79,14 @@ python interplm/train/train_plm_sae.py \
 
 To track fidelity (how much the final model loss gets hurt by replacing embeddings with SAE reconstructions), you need a list of protein sequences to evaluate on. Here we provide a list of 1024 random sequences from [CATH](https://www.cathdb.info) but can use any list you'd like.
 ```bash
-wget -x -P $INTERPLM_DATA/CATH/ https://interplm.s3.us-west-1.amazonaws.com/data/CATH/random_1k_subset.csv
+wget -P $INTERPLM_DATA/CATH/ https://interplm.s3.us-west-1.amazonaws.com/data/CATH/random_1k_subset.csv
 
 python interplm/train/train_plm_sae.py \
     --plm_embd_dir $INTERPLM_DATA/esm_embds/layer_3/ \
     --save_dir models/walkthrough_model/ \
     --eval_seq_path $INTERPLM_DATA/CATH/random_1k_subset.csv
 ```
-> Tracking reconstruction fidelity can be a helpful metric when evaluating SAE quality, but if you are getting nnsight errors (e.g. I've had trouble running it on apple silicon), you can just run the first command.
+> Tracking reconstruction fidelity can be a helpful metric when evaluating SAE quality, but if you are getting nnsight errors, you can just run the first command.
 ### 3. Analyze associations between feature activations and UniProtKB annotations
 
 1. Download Swiss-Prot (or any UniProtKB) data and extract quantitative binary concept labels then create eval sets from this. For our analysis in the paper, we just download all of Swiss-Prot (500k proteins) but for speed/memory efficiency of the walktrough, we add some filters to create a small subset of 800 proteins although it should be noted that scanning over a small dataset can lead to concept-feature pairings that don't generalize as well, but is fine for a walkthrough. <details> <summary> Details on data subset & customization </summary> The command below downloads annotations for proteins from mice with 3D structures, high quality annotations, and < 400 amino acids/protein, which leaves us with 800 sequences and a ~200kb download. If you want to include more data, remove `+AND+%28proteins_with%3A1%29+AND+%28annotation_score%3A5%29+AND+%28model_organism%3A10090%29+AND+%28length%3A%5B1+TO+400%5D%29` from the end of this query.</details>

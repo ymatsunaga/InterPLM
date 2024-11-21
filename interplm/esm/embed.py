@@ -1,4 +1,4 @@
-""" Embed full protein sequences using ESM model and save to HDF5 file """
+""" Functions for embedding protein sequences using ESM models """
 
 import re
 from pathlib import Path
@@ -14,6 +14,20 @@ from interplm.utils import get_device
 
 
 def get_model_converter_alphabet(esm_model_name: str, corrupt: bool = False, truncation_seq_length: int = 1022):
+    """
+    Initialize ESM model, batch converter, and alphabet for protein sequence processing.
+
+    Args:
+        esm_model_name: Name of the ESM model to load
+        corrupt: If True, randomly shuffle model parameters. Defaults to False.
+        truncation_seq_length: Maximum sequence length before truncation. Defaults to 1022.
+
+    Returns:
+        tuple: (model, batch_converter, alphabet)
+            - model: Loaded ESM model
+            - batch_converter: Function to convert sequences to model inputs
+            - alphabet: ESM alphabet object for token conversion
+    """
     device = get_device()
     _, alphabet = pretrained.load_model_and_alphabet(esm_model_name)
     model = EsmForMaskedLM.from_pretrained(
@@ -31,13 +45,14 @@ def get_model_converter_alphabet(esm_model_name: str, corrupt: bool = False, tru
 def shuffle_individual_parameters(model, seed=42):
     """
     Randomly shuffle all parameters within a model while preserving their shapes.
+    Used for creating controlled corrupted model baselines.
 
     Args:
         model: PyTorch model to shuffle
-        seed: Random seed for reproducibility
+        seed: Random seed for reproducibility.
 
     Returns:
-        Model with shuffled parameters
+        Model with randomly shuffled parameters
     """
     torch.manual_seed(seed)
     np.random.seed(seed)
@@ -61,7 +76,21 @@ def embed_list_of_prot_seqs(
     device: torch.device = None,
     corrupt: bool = False
 ) -> List[np.ndarray]:
-    """ Return list of ESM embeddings for a specified layer, computed in batches """
+    """
+    Generate ESM embeddings for a list of protein sequences in batches.
+
+    Args:
+        protein_seq_list: List of protein sequences to embed
+        esm_model_name: Name of the ESM model to use
+        layer: Which transformer layer to extract embeddings from
+        toks_per_batch Maximum tokens per batch. Defaults to 4096.
+        truncation_seq_length: Maximum sequence length before truncation.
+        device: Device to run computations on. Defaults to None.
+        corrupt: If True, use corrupted model parameters. Defaults to False.
+
+    Returns:
+        List of embedding arrays, one per input sequence
+    """
     if device is None:
         device = get_device()
 
@@ -119,22 +148,22 @@ def embed_single_sequence(
     device: torch.device = None
 ) -> torch.Tensor:
     """
-    Embed a single protein sequence using ESM model
+    Embed a single protein sequence using ESM model.
 
-    Notably this method doesn't use FastaBatchedDataset or a real dataloader, which
-    are more helpful for processing many sequences but doesn't work as well for
-    just frequently querying individual sequences quickly and simply as is done
-    in the dashboard, so this is easier for that use case (and causes fewer issues
-    when multiple users are querying sequences at once).
+    This method is optimized for quick, individual sequence processing, making it
+    ideal for interactive applications like dashboards. Unlike batch processing
+    methods, it doesn't use FastaBatchedDataset or complex data loading,
+    making it more suitable for concurrent user queries.
 
     Args:
-        sequence: Protein sequence string
+        sequence: Protein sequence string to embed
         model_name: Name of the ESM model to use
-        layer: Which layer to extract embeddings from
-        device: Torch device to use
+        layer: Which transformer layer to extract embeddings from
+        device: Computation device.
 
     Returns:
-        Tensor of embeddings for the sequence
+        Embedding tensor for the sequence, with shape
+            (sequence_length, embedding_dimension)
     """
     if device is None:
         device = get_device()

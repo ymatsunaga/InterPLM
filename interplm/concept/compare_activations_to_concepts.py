@@ -103,8 +103,7 @@ def calc_metrics_sparse(
 
         # Binarize features based on threshold
         sae_feats_binarized = sae_feats_sparse.copy()
-        sae_feats_binarized.data = (
-            sae_feats_binarized.data > threshold).astype(int)
+        sae_feats_binarized.data = (sae_feats_binarized.data > threshold).astype(int)
         sae_feats_binarized.eliminate_zeros()
 
         # Calculate metrics for each concept
@@ -113,14 +112,11 @@ def calc_metrics_sparse(
 
             # Calculate true positives
             tp_sparse = sae_feats_binarized.multiply(concept_labels > 0)
-            tp[concept_idx, :, threshold_idx] = np.asarray(
-                tp_sparse.sum(axis=0)).ravel()
+            tp[concept_idx, :, threshold_idx] = np.asarray(tp_sparse.sum(axis=0)).ravel()
 
             # Calculate false positives
-            fp_sparse = sae_feats_binarized.multiply(
-                concept_labels != 0).multiply(-1) + sae_feats_binarized
-            fp[concept_idx, :, threshold_idx] = np.asarray(
-                fp_sparse.sum(axis=0)).ravel()
+            fp_sparse = sae_feats_binarized.multiply(concept_labels != 0).multiply(-1) + sae_feats_binarized
+            fp[concept_idx, :, threshold_idx] = np.asarray(fp_sparse.sum(axis=0)).ravel()
 
             # Calculate domain-specific metrics for non-AA-level concepts
             if not is_aa_level_concept_list[concept_idx]:
@@ -176,8 +172,7 @@ def calc_metrics_dense(
     # Set up GPU if available, otherwise use CPU
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # Convert labels to dense tensor and move to appropriate device
-    per_token_labels = torch.tensor(
-        per_token_labels_sparse.astype(np.float32), device=device)
+    per_token_labels = torch.tensor(per_token_labels_sparse.astype(np.float32), device=device)
 
     # Get dimensions from input tensors
     _, n_features = sae_feats.shape
@@ -191,8 +186,7 @@ def calc_metrics_dense(
     # Initialize result tensors on device
     tp = torch.zeros((n_concepts, n_features, n_thresholds), device=device)
     fp = torch.zeros((n_concepts, n_features, n_thresholds), device=device)
-    tp_per_domain = torch.zeros(
-        (n_concepts, n_features, n_thresholds), device=device)
+    tp_per_domain = torch.zeros((n_concepts, n_features, n_thresholds), device=device)
 
     # Calculate metrics for each threshold
     for threshold_idx in range(n_thresholds):
@@ -250,8 +244,7 @@ def process_shard(
         Tuple of arrays (tp, fp, tp_per_domain) containing calculated metrics
     """
     # Load embeddings to specified device
-    esm_acts = torch.load(esm_embeddings_pt_path,
-                          map_location=device, weights_only=True)
+    esm_acts = torch.load(esm_embeddings_pt_path, map_location=device, weights_only=True)
 
     # Calculate chunking parameters
     feature_chunk_size = min(feat_chunk_max, sae.dict_size)
@@ -345,10 +338,8 @@ def analyze_concepts(sae_dir: Path,
         raise ValueError(f"Shard {shard} is not in this evaluation set")
 
     # Load concept names and identify amino acid level concepts
-    concept_names = load_concept_names(
-        eval_set_dir / "aa_concepts_columns.txt")
-    is_aa_concept_list = [is_aa_level_concept(
-        concept_name) for concept_name in concept_names]
+    concept_names = load_concept_names(eval_set_dir / "aa_concepts_columns.txt")
+    is_aa_concept_list = [is_aa_level_concept(concept_name) for concept_name in concept_names]
 
     # Load and process labels for the specified shard
     per_token_labels = sparse.load_npz(
@@ -408,8 +399,7 @@ def analyze_all_shards_in_set(sae_dir: Path,
     # Load list of shards to evaluate from metadata
     with open(eval_set_dir / "metadata.json", "r") as f:
         shards_to_eval = json.load(f)["shard_source"]
-        print(f"Analyzing set {eval_set_dir.stem} with {
-              shards_to_eval} shards")
+        print(f"Analyzing set {eval_set_dir.stem} with {shards_to_eval} shards")
 
     # Process each shard sequentially
     for shard in shards_to_eval:

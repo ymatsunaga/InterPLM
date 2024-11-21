@@ -118,8 +118,7 @@ def expand_features(df: pd.DataFrame,
         # Handle case where this shard has no data for this column
         if df[col].isnull().all():
             for category_option in category_options:
-                new_columns[f"{col}_{category_option}"] = df["Length"].apply(lambda x: [
-                                                                             False] * x)
+                new_columns[f"{col}_{category_option}"] = df["Length"].apply(lambda x: [False] * x)
 
         else:
 
@@ -149,7 +148,7 @@ def expand_features(df: pd.DataFrame,
 
         col_name = df[col].dropna().iloc[0].split(" ")[0]
         for _, row in df.iterrows():
-            indices, pairs = process_interaction_feature(
+            indices, _ = process_interaction_feature(
                 row[col], col_name, row["Length"])
             new_columns[f"{col}_binary"].append(indices)
 
@@ -202,21 +201,18 @@ def filter_and_shard(input_path: Path,
     categorical_options = {}
     for col_name, col_shortname, col_separator in categorical_concepts:
         # For each categorical feature, count the number of instances of each sub-category
-        _, _, _, notes = analyze_categorical_features(
-            df, col_name, col_shortname, col_separator)
+        _, _, _, notes = analyze_categorical_features(df, col_name, col_shortname, col_separator)
         notes = notes[notes >= min_required_instances]
 
         # Create a list of most common sub-categories to keep (and a catch-all for the rest)
-        categorical_options[col_name] = [
-            c for c in notes.keys() if c != ""] + ["any"]
+        categorical_options[col_name] = [c for c in notes.keys() if c != ""] + ["any"]
 
     # Split into shards
     logger.info(f"Splitting data into {n_shards} shards...")
     shard_size = len(df) // n_shards
     for i in range(0, len(df), shard_size):
         shard_id = i // shard_size
-        df_shard = df.iloc[i:min(i + shard_size, len(df))
-                           ].reset_index(drop=True)
+        df_shard = df.iloc[i:min(i + shard_size, len(df))].reset_index(drop=True)
 
         shard_dir = output_dir / f"shard_{shard_id}"
         shard_dir.mkdir(parents=True, exist_ok=True)
@@ -259,12 +255,12 @@ def process_shard(shard_id: int,
 
     # Explode to amino acid level
     cols_to_expand = ["amino_acid", "local_index"] + new_cols
-    df = df[["Entry"] +
-            cols_to_expand].explode(cols_to_expand).reset_index(drop=True)
-    # replace "_binary" with "" in column names
+    df = df[["Entry"] + cols_to_expand].explode(cols_to_expand).reset_index(drop=True)
+
+    # Clean up some of the concept names to make them more readable
     df.columns = [re.sub(r"_binary", "", col) for col in df.columns]
-    # replace " [FT]" with "" in column names
     df.columns = [re.sub(r" \[FT\]", "", col) for col in df.columns]
+    
     # One-hot encode amino acids
     df = one_hot_encode(df, "amino_acid", aa_map, include_other=True)
 

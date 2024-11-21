@@ -130,8 +130,7 @@ def embed_fasta_file_for_all_layers(
 
         # Save the tensor
         torch.save(layer_activations, output_file)
-        print(f"Saved activations for layer {
-              layer}, shard {shard_num} to {output_file}")
+        print(f"Saved activations for layer {layer}, shard {shard_num} to {output_file}")
 
         # Save metadata
         metadata = {
