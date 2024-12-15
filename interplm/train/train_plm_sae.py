@@ -3,6 +3,7 @@ Script for training SAE from a cache of PLM activations and loading the custom f
 Assumes specific dataset structure for activations, as created by interp/data_processing/embed_fasta.py.
 """
 
+import warnings
 from pathlib import Path
 
 import torch
@@ -14,6 +15,8 @@ from interplm.train.load_sharded_acts import LazyMultiDirectoryTokenDataset
 from interplm.train.trainer import StandardTrainer
 from interplm.train.training import train_run
 from interplm.utils import get_device
+
+warnings.filterwarnings("ignore", message="TypedStorage is deprecated")
 
 
 def train_SAE_on_PLM_embeds(
