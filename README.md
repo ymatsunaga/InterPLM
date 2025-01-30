@@ -3,15 +3,13 @@
 
 InterPLM is a toolkit for extracting, analyzing, and visualizing interpretable features from protein language models (PLMs) using sparse autoencoders (SAEs). To learn more, check out [the preprint](https://www.biorxiv.org/content/10.1101/2024.11.14.623630v1), or explore SAE features from every hidden layer of ESM-2-8M in our interactive dashboard, [InterPLM.ai](https://interPLM.ai).
 
-### Key Features
-- 🧬 Extract SAE features from protein language models
-- 📊 Analyze and interpret learned features
-- 🎨 Visualize feature patterns and relationships
+## Key Features
+- 🧬 Extract SAE features from protein language models (PLMs)
+- 📊 Analyze and interpret learned features through association with protein annotations
+- 🎨 Visualize feature patterns and relationships 
+- 🤗 Pre-trained sparse autoencoders for ESM-2 models (8M and 650M)
 
-## Example walkthrough
-**_This walks through training, analysis, and feature visualization for SAEs based on PLM embeddings. The code is primarily set up for ESM-2 embeddings, but can easily be adapted to embeddings from any PLM._**
-
-### 0. Setup
+## Getting Started
 #### Installation
 ```bash
 # Clone the repository
@@ -25,7 +23,32 @@ conda activate interplm
 # Install package
 pip install -e .
 ```
-#### Environment setup
+
+## Using Pretrained Models
+We provide pretrained sparse autoencoders on HuggingFace for two ESM-2 models:
+
+| Model | Available Layers | HuggingFace Link |
+|-------|-----------------|------------------|
+| ESM-2-8M | 1, 2, 3, 4, 5, 6 | [InterPLM-esm2-8m](https://huggingface.co/Elana/InterPLM-esm2-8m) |
+| ESM-2-650M | 1, 9, 18, 24, 30, 33 | [InterPLM-esm2-650m](https://huggingface.co/Elana/InterPLM-esm2-650m) |
+
+You can explore these features interactively in our pre-made dashboard at [InterPLM.ai](https://interPLM.ai).
+
+To use a pretrained model:
+```python
+from interplm.sae.inference import load_sae_from_hf
+
+# Load specific layer SAE (e.g., layer 4 from ESM-2-8M)
+sae = load_sae_from_hf(plm_model="esm2-8m", plm_layer=4)
+
+# Or for ESM-2-650M (e.g., layer 24)
+sae = load_sae_from_hf(plm_model="esm2-650m", plm_layer=24)
+```
+
+## Training and Analyzing Custom SAEs: Complete Guide
+**_This walks through training, analysis, and feature visualization for custom SAEs based on PLM embeddings. The code is primarily set up for ESM-2 embeddings, but can easily be adapted to embeddings from any PLM._**
+
+### 0. Environment setup
 Set the `INTERPLM_DATA` environment variable to establish the base directory for all data paths in this walkthrough (any downloaded .fasta files and ESM-2 embeddings created). If you don't want to use an environment variable, just replace `INTERPLM_DATA` with your path of choice throughout the walkthrough.
 ```bash
 # For zsh (replace with .bashrc or preferred shell)
@@ -157,7 +180,7 @@ The dashboard runs off a cache of pre-analyzed metrics (see [InterPLM.ai] for ex
 First set up a dashboard cache and track some proteins that activate each feature at various activation levels
 ```bash
 python interplm/feature_vis/start_dashboard_cache.py \
-    --sae_dir models/walkthrough_model \
+    --sae_dir models/walkthrough_model/ae_normalized.pt \
     --esm_embeds_dir $INTERPLM_DATA/uniprotkb/embeddings \
     --aa_metadata_dir $INTERPLM_DATA/uniprotkb/annotations \
     --n_shards 4 \

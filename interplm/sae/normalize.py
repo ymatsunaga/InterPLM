@@ -12,7 +12,7 @@ import torch
 
 from interplm.sae.inference import (
     get_sae_feats_in_batches,
-    load_model,
+    load_sae,
     split_up_feature_list,
 )
 from interplm.utils import get_device
@@ -109,9 +109,7 @@ def create_normalized_model(
 
 
 def normalize_sae_features(
-    sae_dir: Path,
-    esm_embds_dir: Path,
-    n_shards: Optional[int] = 1
+    sae_dir: Path, esm_embds_dir: Path, n_shards: Optional[int] = 1
 ) -> None:
     """
     Calculate feature statistics and create a normalized version of the SAE model.
@@ -131,11 +129,9 @@ def normalize_sae_features(
 
     # Load model and calculate statistics
     print("Loading SAE model and calculating feature statistics...")
-    sae = load_model(ckpt_path)
+    sae = load_sae(ckpt_path)
     max_per_feat = calculate_feature_statistics(
-        sae=sae,
-        esm_embds_dir=esm_embds_dir,
-        n_shards=n_shards
+        sae=sae, esm_embds_dir=esm_embds_dir, n_shards=n_shards
     )
 
     # Save statistics
@@ -149,4 +145,5 @@ def normalize_sae_features(
 
 if __name__ == "__main__":
     from tap import tapify
+
     tapify(normalize_sae_features)

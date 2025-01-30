@@ -23,7 +23,7 @@ from tqdm import tqdm
 
 from interplm.concept.uniprotkb_concept_constants import is_aa_level_concept
 from interplm.sae.dictionary import AutoEncoder
-from interplm.sae.inference import get_sae_feats_in_batches, load_model
+from interplm.sae.inference import get_sae_feats_in_batches, load_sae
 
 
 def count_unique_nonzero_sparse(
@@ -375,7 +375,7 @@ def analyze_concepts(
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Load the normalized SAE model
-    sae = load_model(model_path=sae_dir / "ae_normalized.pt", device=device)
+    sae = load_sae(model_path=sae_dir / "ae_normalized.pt", device=device)
 
     # Process the shard and get results (true positives, false positives, and true positives per domain)
     (tp, fp, tp_per_domain) = process_shard(

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import warnings
 from pathlib import Path
 from typing import List, Optional, Union
 
@@ -7,16 +8,23 @@ import h5py
 import numpy as np
 import pandas as pd
 import torch
+from huggingface_hub import hf_hub_download
 from torch import Tensor
 from tqdm import tqdm
 
 from interplm.sae.dictionary import AutoEncoder
 from interplm.utils import get_device
 
+warnings.filterwarnings("ignore", message="TypedStorage is deprecated")
 
-def load_model(
-    model_path: Union[str, Path], device: Optional[str] = None
-) -> AutoEncoder:
+pretrained_models = ["esm2-8m", "esm2-650m"]
+pretrained_layers = {
+    "esm2-8m": [1, 2, 3, 4, 5, 6],
+    "esm2-650m": [1, 9, 18, 24, 30, 33],
+}
+
+
+def load_sae(model_path: Union[str, Path], device: Optional[str] = None) -> AutoEncoder:
     """
     Load a pretrained AutoEncoder model in inference mode.
 
@@ -54,6 +62,40 @@ def load_model(
         param.requires_grad = False
 
     return autoencoder
+
+
+def load_sae_from_hf(plm_model: str, plm_layer: str) -> AutoEncoder:
+    """
+    Load a pretrained PLM SAE from Hugging Face.
+
+    :param plm_model: ESM2 model name [options = "esm2-8m" or "esm2-650m"]
+    :param plm_layer: Layer to use for encoding [options = 1-6 if esm_model = "esm2-8m", or 1,9,18,24,30,33 if esm_model = "esm2-650m"]
+    :return: Loaded SAE model
+    """
+
+    # Convert to lowercase and replace underscores with hyphens
+    plm_model = plm_model.lower().replace("_", "-")
+    plm_layer = int(plm_layer)
+
+    if plm_model not in pretrained_models:
+        raise ValueError(
+            f"Invalid ESM model: {plm_model}, options: {pretrained_models}"
+        )
+    if plm_layer not in pretrained_layers[plm_model]:
+        raise ValueError(
+            f"Invalid ESM layer for {plm_model}: {plm_layer}, options: {pretrained_layers[plm_model]}"
+        )
+
+    # Download the SAE weights from HuggingFace
+    weights_path = hf_hub_download(
+        repo_id=f"Elana/InterPLM-{plm_model}",
+        filename=f"layer_{plm_layer}/ae_normalized.pt",
+    )
+
+    # Load the SAE model
+    sae = load_sae(weights_path)
+
+    return sae
 
 
 def encode_subset_of_feats(
