@@ -120,22 +120,14 @@ python interplm/sae/normalize.py \
 ```
 4.  Create evaluation sets with different shards of data. Adjust the numbers here based on the number of shards created in Step 1. This step also filters out any concepts that have do not have many examples in your validation sets.
 ```
-# Create validation set
+# Create validation and test sets
 python interplm/concept/prepare_concept_eval_set.py \
-    --shards_to_include 0 1 2 3 \
-    --uniprot_dir $INTERPLM_DATA/uniprotkb/annotations \
-    --eval_name valid
-
-
-# Create a test set
-python interplm/concept/prepare_concept_eval_set.py \
-    --shards_to_include 4 5 6 7 \
-    --uniprot_dir $INTERPLM_DATA/uniprotkb/annotations \
-    --eval_name test
-
+    --valid_shards 0 1 2 3 \
+    --test_shards 4 5 6 7 \
+    --uniprot_dir $INTERPLM_DATA/uniprotkb/annotations
 ```
 
-6. Compare all features to all concepts at each threshold
+5. Compare all features to all concepts at each threshold
 
 ```
 for EVAL_SET in valid test
@@ -179,7 +171,7 @@ cd interplm/dashboard && streamlit run app.py
 
 >Note: After launching, access the dashboard at http://localhost:8501
 
-If you've followed these steps, you'll have a dashboard for ESM2-8M layer 3 with 2,560 features, of which only 3 have concept associations - all related to coiled coils. On its own, this is not a particularly exciting set of features, but now you should be able to scale up both the training and concept-evaluation pipelines to explore a broader range of protein language model features. Increasing the training data, adjusting hyperparameters, and expanding the concept evaluation set will help identify features corresponding to other structural motifs, binding sites, and functional domains.
+If you've followed these steps, you'll have a dashboard for ESM2-8M layer 3 with 2,560 features, 50 of which have associations with one of 6 concepts. On its own, this is not a particularly exciting set of features, but now you should be able to scale up both the training and concept-evaluation pipelines to explore a broader range of protein language model features. Increasing the training data, adjusting hyperparameters, and expanding the concept evaluation set will help identify features corresponding to other structural motifs, binding sites, and functional domains.
 
 ## Citation
 
