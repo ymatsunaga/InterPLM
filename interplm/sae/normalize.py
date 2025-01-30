@@ -10,8 +10,12 @@ from typing import Optional
 import numpy as np
 import torch
 
-from interplm.sae.inference import (get_sae_feats_in_batches, load_model,
-                                    split_up_feature_list)
+from interplm.sae.inference import (
+    get_sae_feats_in_batches,
+    load_model,
+    split_up_feature_list,
+)
+from interplm.utils import get_device
 
 
 def calculate_feature_statistics(
@@ -34,7 +38,7 @@ def calculate_feature_statistics(
     Returns:
         Tensor containing maximum activation value for each feature
     """
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = get_device()
     num_features = sae.dict_size
     max_per_feat = torch.zeros(num_features, device=device)
 
@@ -44,13 +48,11 @@ def calculate_feature_statistics(
     for shard in range(n_shards):
         # Load embeddings for current shard
         shard_path = esm_embds_dir / f"shard_{shard}.pt"
-        esm_acts = torch.load(
-            shard_path, map_location=device, weights_only=True)
+        esm_acts = torch.load(shard_path, map_location=device, weights_only=True)
 
         # Process features in chunks to manage memory
         for feature_list in split_up_feature_list(
-            total_features=num_features,
-            max_feature_chunk_size=max_features_per_chunk
+            total_features=num_features, max_feature_chunk_size=max_features_per_chunk
         ):
             # Get SAE features for current chunk
             sae_feats = get_sae_feats_in_batches(
@@ -58,13 +60,12 @@ def calculate_feature_statistics(
                 device=device,
                 esm_embds=esm_acts,
                 chunk_size=max_tokens_per_chunk,
-                feat_list=feature_list
+                feat_list=feature_list,
             )
 
             # Update maximum values for current feature subset
             max_per_feat[feature_list] = torch.max(
-                max_per_feat[feature_list],
-                torch.max(sae_feats, dim=0)[0]
+                max_per_feat[feature_list], torch.max(sae_feats, dim=0)[0]
             )
 
             # Clean up to manage memory
@@ -75,8 +76,7 @@ def calculate_feature_statistics(
 
 
 def create_normalized_model(
-    sae: torch.nn.Module,
-    max_per_feat: torch.Tensor
+    sae: torch.nn.Module, max_per_feat: torch.Tensor
 ) -> torch.nn.Module:
     """
     Create a normalized version of the SAE model based on maximum feature values.
@@ -92,8 +92,15 @@ def create_normalized_model(
     with torch.no_grad():
         # Normalize encoder weights and bias
         sae.encoder.weight.div_(max_per_feat.unsqueeze(1))
+
+        # Replace any inf values introduced by division by 0
+        sae.encoder.weight[sae.encoder.weight.isinf()] = 0
+
         if sae.encoder.bias is not None:
             sae.encoder.bias.div_(max_per_feat)
+
+            # Replace any inf values introduced by division by 0
+            sae.encoder.bias[sae.encoder.bias.isinf()] = 0
 
         # Adjust decoder weights to maintain reconstruction
         sae.decoder.weight.mul_(max_per_feat.unsqueeze(0))
