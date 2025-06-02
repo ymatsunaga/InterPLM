@@ -48,8 +48,8 @@ class ProteinFeatureVisualizer:
     @st.cache_resource
     def _load_data():
         """Load and cache the dashboard data"""
-        dashboard_cache_path = DASHBOARD_CACHE_DIR / "dashboard_cache.pkl"
-        protein_metadata_path = DASHBOARD_CACHE_DIR / "swiss-prot_metadata.tsv.gz"
+        dashboard_cache_path = DASHBOARD_CACHE_DIR / "dashboard_cache_650M.pkl"
+        protein_metadata_path = DASHBOARD_CACHE_DIR / "proteins.tsv.gz"
         protein_metadata = pd.read_csv(protein_metadata_path, sep="\t", index_col=0)
 
         with open(dashboard_cache_path, "rb") as f:

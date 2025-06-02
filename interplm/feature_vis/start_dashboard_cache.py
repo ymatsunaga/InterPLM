@@ -15,7 +15,7 @@ def add_layer_to_dashboard(
     sae_path: Path,
     esm_embeds_dir: Path,
     aa_metadata_dir: Path,
-    n_shards: int,
+    n_shards: int, 
     esm_model_name: str,
     layer: int,
     concept_dir: Path | None = None,
@@ -49,7 +49,8 @@ def add_layer_to_dashboard(
 
     layer_cache["Sig_concepts_per_feature"] = concept_results
 
-    if DASHBOARD_CACHE.exists():
+    #if DASHBOARD_CACHE.exists():
+    if False:
         print(f"Adding layer {layer} to dashboard cache at {DASHBOARD_CACHE}")
         with open(DASHBOARD_CACHE, "rb") as f:
             cache = pickle.load(f)
@@ -59,6 +60,7 @@ def add_layer_to_dashboard(
 
     cache[layer] = layer_cache
 
+    DASHBOARD_CACHE.parent.mkdir(parents=True, exist_ok=True)
     print(f"Saving final results to dashboard cache at {DASHBOARD_CACHE}")
     with open(DASHBOARD_CACHE, "wb") as f:
         pickle.dump(cache, f)

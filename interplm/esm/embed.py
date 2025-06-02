@@ -18,6 +18,7 @@ def get_model_converter_alphabet(
     corrupt: bool = False,
     truncation_seq_length: int = 1022,
     device: str | None = None,
+    weight_file: Path | None = None,
 ):
     """
     Initialize ESM model, batch converter, and alphabet for protein sequence processing.
@@ -37,7 +38,11 @@ def get_model_converter_alphabet(
         device = get_device()
 
     _, alphabet = pretrained.load_model_and_alphabet(esm_model_name)
-    model = EsmForMaskedLM.from_pretrained(f"facebook/{esm_model_name}").to(device)
+    if weight_file is not None:
+        print(f"Loaded external weights from {weight_file}")
+        model = EsmForMaskedLM.from_pretrained(weight_file).to(device)
+    else:
+        model = EsmForMaskedLM.from_pretrained(f"facebook/{esm_model_name}").to(device)
     model.eval()
 
     if corrupt:
@@ -81,6 +86,7 @@ def embed_list_of_prot_seqs(
     truncation_seq_length: int = None,
     device: torch.device = None,
     corrupt: bool = False,
+    weight_file: Path | None = None,
 ) -> List[np.ndarray]:
     """
     Generate ESM embeddings for a list of protein sequences in batches.
@@ -93,6 +99,7 @@ def embed_list_of_prot_seqs(
         truncation_seq_length: Maximum sequence length before truncation.
         device: Device to run computations on. Defaults to None.
         corrupt: If True, use corrupted model parameters. Defaults to False.
+        weight_file: Path to external weights to load
 
     Returns:
         List of embedding arrays, one per input sequence
@@ -102,7 +109,7 @@ def embed_list_of_prot_seqs(
 
     # Load ESM model
     model, batch_converter, alphabet = get_model_converter_alphabet(
-        esm_model_name, corrupt, truncation_seq_length, device=device
+        esm_model_name, corrupt, truncation_seq_length, device=device, weight_file=weight_file
     )
     # Create FastaBatchedDataset
     labels = [f"protein_{i}" for i in range(len(protein_seq_list))]

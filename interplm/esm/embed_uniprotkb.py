@@ -14,6 +14,7 @@ def df_of_prot_seqs_to_pt(
     seq_col: str,
     toks_per_batch: int = 4096,
     corrupt: bool = False,
+    weight_file: Path | None = None,
 ):
     """
     Compute ESM embeddings for protein sequences in a DataFrame and save to disk.
@@ -26,6 +27,7 @@ def df_of_prot_seqs_to_pt(
         seq_col: Name of column containing sequences
         toks_per_batch: Maximum tokens per batch
         corrupt: Whether to use corrupted model parameters
+        weight_file: Path to external weights to load
 
     Returns:
         Tensor containing concatenated embeddings for all sequences
@@ -41,6 +43,7 @@ def df_of_prot_seqs_to_pt(
         toks_per_batch=toks_per_batch,
         device=device,
         corrupt=corrupt,
+        weight_file=weight_file,
     )
     # Convert list of embeddings to a single tensor
     all_embeddings = torch.cat([emb for emb in embeddings], dim=0)
@@ -56,6 +59,7 @@ def embed_uniprotkb_shard(
     layer: int,
     esm_name: str = "esm2_t6_8M_UR50D",
     corrupt: bool = False,
+    weight_file: Path | None = None,
 ):
     """
     Embed protein sequences from a UniProtKB shard file.
@@ -66,6 +70,7 @@ def embed_uniprotkb_shard(
         layer: Which transformer layer to extract embeddings from
         esm_name: Name of ESM model to use
         corrupt: Whether to use corrupted model parameters
+        weight_file: Path to external weights to load
     """
     if output_file.exists():
         print(f"{output_file} already exists, skipping...")
@@ -73,15 +78,18 @@ def embed_uniprotkb_shard(
     # make output directory if it doesn't exist
     output_dir = output_file.parent
     output_dir.mkdir(parents=True, exist_ok=True)
-    df = pd.read_csv(input_file, sep="\t").set_index("Entry")
+    #df = pd.read_csv(input_file, sep="\t").set_index("Entry")
+    df = pd.read_csv(input_file, sep="\t").set_index("id")
     print(f"Embedding {len(df)} proteins from Uniprot database using {esm_name}...")
     df_of_prot_seqs_to_pt(
         protein_df=df,
         esm_name=esm_name,
         output_path=output_file,
         layer=layer,
-        seq_col="Sequence",
+        #seq_col="Sequence",
+        seq_col="Sequence_Aho_ungapped",
         corrupt=corrupt,
+        weight_file=weight_file,
     )
 
 
@@ -91,6 +99,7 @@ def embed_all_shards(
     layer: int,
     esm_name: str = "esm2_t6_8M_UR50D",
     corrupt: bool = False,
+    weight_file: Path | None = None,
 ):
     """
     Process and embed all UniProtKB shards in a directory.
@@ -101,6 +110,7 @@ def embed_all_shards(
         layer: Which transformer layer to extract embeddings from
         esm_name: Name of ESM model to use
         corrupt: Whether to use corrupted model parameters
+        weight_file: Path to external weights to load
     """
     for input_file in input_dir.glob("shard_*"):
         shard = input_file.stem.split("_")[-1]
@@ -111,6 +121,7 @@ def embed_all_shards(
             layer=layer,
             esm_name=esm_name,
             corrupt=corrupt,
+            weight_file=weight_file,
         )
 
 

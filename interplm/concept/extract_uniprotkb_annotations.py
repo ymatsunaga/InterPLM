@@ -269,7 +269,7 @@ def main(
 
     # Preprocess data
     df = pd.read_csv(input_uniprot_path, sep="\t")
-    df = preprocess_proteins(df, min_protein_length)
+    #df = preprocess_proteins(df, min_protein_length)
     shard_protein_data(df, output_dir, n_shards)
 
     # Dynamically determine which sub-categories are abundant enough to include

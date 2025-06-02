@@ -58,8 +58,11 @@ ptm_groups = {
     "ump": "Nucleotide attachment",
 }
 
-subconcepts_to_exclude_from_evals = [
-    "Region_any", "Modified residue_any", "Domain_any", "Compositional bias_any", "Motif_any"]
+#subconcepts_to_exclude_from_evals = [
+#    "Region_any", "Modified residue_any", "Domain_any", "Compositional bias_any", "Motif_any"]
+
+subconcepts_to_exclude_from_evals = []
+
 per_aa_concepts = ["Active site", "Cofactor", "Glycosylation",
                    "Modified residue", "amino_acid", "Disulfide bond"]
 

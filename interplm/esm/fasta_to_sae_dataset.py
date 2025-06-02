@@ -59,6 +59,7 @@ def embed_fasta_file_for_all_layers(
     corrupt_esm: bool = False,
     toks_per_batch: int = 1024,
     truncation_seq_length: int = 1022,
+    weight_file: Path | None = None, 
 ):
     """
     Process a FASTA file through an ESM model and save layer activations.
@@ -86,6 +87,22 @@ def embed_fasta_file_for_all_layers(
     model, batch_converter, alphabet = get_model_converter_alphabet(
         esm_model_name, corrupt_esm, truncation_seq_length)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    ############ edited ##############
+    if weight_file is not None:
+        ckpt: Dict[str, Any] = torch.load(weight_file, map_location=device)
+        # 典型的な 3 パターンに対応
+        if "model_state_dict" in ckpt:
+            ckpt = ckpt["model_state_dict"]
+        elif "state_dict" in ckpt:
+            ckpt = ckpt["state_dict"]
+        # strict=False で不足 / 余剰キーは無視
+        missing, unexpected = model.load_state_dict(ckpt, strict=False)
+        print(
+            f"Loaded external weights from {weight_file} "
+            f"(missing={len(missing)}, unexpected={len(unexpected)})"
+        )    
+    ##################################
 
     dataset = FastaBatchedDataset.from_file(fasta_file)
     batches = dataset.get_batch_indices(toks_per_batch, extra_toks_per_seq=1)
@@ -153,6 +170,7 @@ def process_shard_range(
     start_shard: int | None = None,
     end_shard: int | None = None,
     corrupt_esm: bool = False,
+    weight_file: Path | None = None,
 ):
     """
     Process a range of FASTA shards through an ESM model.
@@ -194,6 +212,7 @@ def process_shard_range(
             output_dir=output_dir,
             layers=layers,
             shard_num=i,
+            weight_file=weight_file, 
         )
 
 

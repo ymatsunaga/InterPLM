@@ -10,7 +10,7 @@ from interplm.utils import get_device
 
 
 def get_random_sample_of_sae_feats(
-    sae: AutoEncoder, esm_embds_dir: Path, n_shards: int = 5
+    sae: AutoEncoder, esm_embds_dir: Path, n_shards: int = 0
 ):
     """
     Get a random sample of up to 1000 nonzero activations for each feature by scanning
