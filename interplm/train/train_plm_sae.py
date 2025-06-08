@@ -27,7 +27,7 @@ def train_SAE_on_PLM_embeds(
     expansion_factor: int = 8,
     # Training configuration
     batch_size: int = 32,
-    steps: int = 1_000,
+    steps: int = 100_000,
     seed: int = 0,
     # Optimization parameters
     lr: float = 1e-3,

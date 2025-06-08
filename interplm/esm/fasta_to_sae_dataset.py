@@ -12,7 +12,8 @@ import torch
 from esm import FastaBatchedDataset
 from tqdm import tqdm
 
-from interplm.esm.embed import get_model_converter_alphabet
+# from interplm.esm.embed import get_model_converter_alphabet  # Not needed anymore
+import esm
 
 
 def get_activations(
@@ -22,7 +23,7 @@ def get_activations(
     layers: List[int]
 ) -> dict:
     """
-    Extract all activation values from multiple layers of the ESM model.
+    Extract all activation values from multiple layers of the ESM model using esm.pretrained API.
 
     Takes a batch of tokens, processes them through the model, and returns
     the representations from specified layers. Excludes padding tokens from
@@ -31,19 +32,19 @@ def get_activations(
     activations for each sequence.
 
     Args:
-        model: ESM model instance
+        model: ESM model instance (from esm.pretrained)
         batch_tokens: Tokenized sequences
+        batch_mask: Not used for esm.pretrained, but kept for compatibility
         layers: List of layer numbers to extract
 
     Returns:
         Dictionary mapping layer numbers to their activation tensors
     """
     with torch.no_grad():
-        output = model(
-            batch_tokens, attention_mask=batch_mask, output_hidden_states=True
-        )
+        # Use esm.pretrained API
+        results = model(batch_tokens, repr_layers=layers)
         token_representations = {
-            layer: output.hidden_states[layer] for layer in layers}
+            layer: results["representations"][layer] for layer in layers}
 
     # Create a mask for non-padding tokens (tokens 0,1,2 are cls/pad/eos respectively)
     mask = batch_tokens > 2
@@ -84,25 +85,43 @@ def embed_fasta_file_for_all_layers(
         - Saves metadata as JSON files
         - Creates directory structure for outputs
     """
-    model, batch_converter, alphabet = get_model_converter_alphabet(
-        esm_model_name, corrupt_esm, truncation_seq_length)
+    # Load model using esm.pretrained (to match SFT_hot.ipynb)
+    model, alphabet = esm.pretrained.esm2_t6_8M_UR50D()
+    batch_converter = alphabet.get_batch_converter()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = model.to(device)
 
-    ############ edited ##############
+    ############ Load custom weights with ESM extraction ##############
     if weight_file is not None:
+        from typing import Dict, Any
         ckpt: Dict[str, Any] = torch.load(weight_file, map_location=device)
         # 典型的な 3 パターンに対応
         if "model_state_dict" in ckpt:
-            ckpt = ckpt["model_state_dict"]
+            state_dict = ckpt["model_state_dict"]
         elif "state_dict" in ckpt:
-            ckpt = ckpt["state_dict"]
+            state_dict = ckpt["state_dict"]
+        else:
+            # Direct state_dict (like SFT_hot.pt)
+            state_dict = ckpt
+            
+        # Extract ESM part if keys have 'esm.' prefix (from ESM2_TmRegressor)
+        if any(k.startswith('esm.') for k in state_dict.keys()):
+            print("Extracting ESM part from full model state_dict...")
+            esm_state_dict = {}
+            for k, v in state_dict.items():
+                if k.startswith('esm.'):
+                    # Remove 'esm.' prefix to match ESM model structure
+                    new_key = k[4:]  # Remove 'esm.'
+                    esm_state_dict[new_key] = v
+            state_dict = esm_state_dict
+            
         # strict=False で不足 / 余剰キーは無視
-        missing, unexpected = model.load_state_dict(ckpt, strict=False)
+        missing, unexpected = model.load_state_dict(state_dict, strict=False)
         print(
             f"Loaded external weights from {weight_file} "
             f"(missing={len(missing)}, unexpected={len(unexpected)})"
         )    
-    ##################################
+    ##################################################################
 
     dataset = FastaBatchedDataset.from_file(fasta_file)
     batches = dataset.get_batch_indices(toks_per_batch, extra_toks_per_seq=1)
@@ -153,7 +172,7 @@ def embed_fasta_file_for_all_layers(
         metadata = {
             "model": esm_model_name,
             "total_tokens": total_tokens,
-            "d_model": model.config.hidden_size,
+            "d_model": model.embed_dim,
             "dtype": str(layer_activations.dtype),
             "layer": layer,
             "shard": shard_num,
