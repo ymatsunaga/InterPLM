@@ -15,41 +15,38 @@ from tqdm import tqdm
 # from interplm.esm.embed import get_model_converter_alphabet  # Not needed anymore
 import esm
 
-
 def get_activations(
     model: torch.nn.Module,
     batch_tokens: torch.Tensor,
     batch_mask: torch.Tensor,
-    layers: List[int]
+    layers: List[int],
+    dtype: torch.dtype = torch.float32, 
 ) -> dict:
     """
-    Extract all activation values from multiple layers of the ESM model using esm.pretrained API.
+    Extract activations from multiple ESM layers in a memory-efficient way.
 
-    Takes a batch of tokens, processes them through the model, and returns
-    the representations from specified layers. Excludes padding tokens from
-    the output. Note, this returns all all tokens flattened together so this
-    is only really useful for training, not if you want to keep track of the
-    activations for each sequence.
-
-    Args:
-        model: ESM model instance (from esm.pretrained)
-        batch_tokens: Tokenized sequences
-        batch_mask: Not used for esm.pretrained, but kept for compatibility
-        layers: List of layer numbers to extract
-
-    Returns:
-        Dictionary mapping layer numbers to their activation tensors
+    * 元コードとの主な差分 *
+      1. torch.inference_mode() で余計なバッファを生成しない
+      2. 取得直後に **CPU へ転送 & 指定 dtype にキャスト** して GPU メモリを開放
+      3. 余分なテンソルを確実に捨てるため del と empty_cache() を追加
     """
-    with torch.no_grad():
-        # Use esm.pretrained API
+    with torch.inference_mode():                # ★ 2) no_grad より軽量
         results = model(batch_tokens, repr_layers=layers)
-        token_representations = {
-            layer: results["representations"][layer] for layer in layers}
 
-    # Create a mask for non-padding tokens (tokens 0,1,2 are cls/pad/eos respectively)
-    mask = batch_tokens > 2
-    return {layer: rep[mask] for layer, rep in token_representations.items()}
+    mask = batch_tokens > 2                     # cls/pad/eos を除外
+    activations = {}
 
+    for layer in layers:
+        rep = results["representations"][layer]          # GPU 上の fp32
+        rep = rep[mask]                                  # パディング除外
+        # ★ 3) 取得直後に CPU & 半精度へ退避 → GPU メモリから即座に解放
+        activations[layer] = rep.to(dtype=dtype, device="cpu").clone()
+
+    # ★ 4) 不要になった GPU テンソルを確実に解放
+    del results
+    torch.cuda.empty_cache()
+
+    return activations
 
 def embed_fasta_file_for_all_layers(
     esm_model_name: str,
